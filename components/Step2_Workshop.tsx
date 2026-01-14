@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   DndContext, 
@@ -20,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { PageItem, PageFilters } from '../types';
-import { Sliders, Sun, Moon, Contrast, ArrowRight, RotateCcw, CheckSquare, PenTool, X, Save, Eraser, Highlighter, Pencil } from 'lucide-react';
+import { Sliders, Sun, Moon, Contrast, ArrowRight, RotateCcw, CheckSquare, PenTool, X, Save, Eraser, Highlighter, Pencil, Plus } from 'lucide-react';
 
 // --- Sortable Item Component ---
 interface SortableItemProps {
@@ -231,7 +230,7 @@ const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
     `;
 
     // Palette
-    const colors = ['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899'];
+    const presetColors = ['#000000', '#52525B', '#FFFFFF', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899'];
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -284,15 +283,35 @@ const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
                          )}
 
                          {(tool === 'pencil' || tool === 'marker') && (
-                            <div className="flex items-center gap-2">
-                                {colors.map(c => (
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {presetColors.map(c => (
                                     <button 
                                         key={c} 
                                         onClick={() => setColor(c)}
-                                        className={`w-6 h-6 rounded-full border-2 ${color === c ? 'border-gray-900 dark:border-white scale-125' : 'border-transparent hover:scale-110'} transition-transform`}
-                                        style={{ backgroundColor: c }}
+                                        className={`w-6 h-6 rounded-full border-2 shadow-sm ${color === c ? 'border-gray-900 dark:border-white scale-125' : 'border-transparent hover:scale-110'} transition-transform`}
+                                        style={{ 
+                                            backgroundColor: c,
+                                            // Ensure white color is visible against the background
+                                            borderColor: c === '#FFFFFF' && color !== c ? '#e4e4e7' : undefined
+                                        }}
+                                        title={c}
                                     />
                                 ))}
+                                
+                                {/* Custom Color Picker */}
+                                <label className="relative flex items-center justify-center w-6 h-6 rounded-full border-2 border-transparent cursor-pointer hover:scale-110 transition-transform bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500 overflow-hidden group" title="Custom Color">
+                                    <input
+                                        type="color"
+                                        value={color}
+                                        onChange={(e) => setColor(e.target.value)}
+                                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                                    />
+                                    {/* Show selection indicator if custom color is active and not in presets */}
+                                    {!presetColors.includes(color) && (
+                                        <div className="w-full h-full border-2 border-gray-900 dark:border-white rounded-full" />
+                                    )}
+                                    <Plus size={12} className="text-white drop-shadow-md" />
+                                </label>
                             </div>
                         )}
                     </div>
