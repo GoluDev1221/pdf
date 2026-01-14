@@ -115,7 +115,7 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="pt-32 px-6 pb-20">
-        <Stepper currentStep={currentStep} />
+        <Stepper currentStep={currentStep} onStepClick={setCurrentStep} />
         
         <div className="min-h-[60vh]">
           {currentStep === AppStep.UPLOAD && (
