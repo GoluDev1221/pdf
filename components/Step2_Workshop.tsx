@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   DndContext, 
   closestCenter, 
@@ -19,16 +20,17 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { PageItem, PageFilters } from '../types';
-import { Sliders, Sun, Moon, Contrast, ArrowRight, RotateCcw, CheckSquare } from 'lucide-react';
+import { Sliders, Sun, Moon, Contrast, ArrowRight, RotateCcw, CheckSquare, PenTool, X, Save, Eraser } from 'lucide-react';
 
 // --- Sortable Item Component ---
 interface SortableItemProps {
   id: string;
   page: PageItem;
   onClick: () => void;
+  onEdit: (e: React.MouseEvent) => void;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ id, page, onClick }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ id, page, onClick, onEdit }) => {
   const {
     attributes,
     listeners,
@@ -61,31 +63,266 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, page, onClick }) => {
       style={style} 
       {...attributes} 
       className={`relative group aspect-[1/1.4] rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border-2 ${page.isSelected ? 'border-indigo-500 shadow-md scale-[1.02]' : 'border-transparent opacity-50 grayscale'}`}
-      onClick={() => {
-        // Prevent drag start on simple click
-        onClick();
-      }}
+      onClick={onClick}
     >
-      <div className="absolute top-2 right-2 z-20">
+      <div className="absolute top-2 right-2 z-20 flex gap-2">
+         {/* Edit Button */}
+         {page.isSelected && (
+            <button 
+                onClick={onEdit}
+                className="w-6 h-6 rounded-full bg-white/80 hover:bg-white text-gray-700 flex items-center justify-center shadow-sm backdrop-blur-sm transition-colors"
+                title="Doodle"
+            >
+                <PenTool size={12} />
+            </button>
+         )}
         <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${page.isSelected ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-zinc-700 text-transparent'}`}>
             <CheckSquare size={14} />
         </div>
       </div>
       
-      {/* Drag Handle Overlay - only activates drag listeners */}
+      {/* Drag Handle Overlay */}
       <div {...listeners} className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 z-20 cursor-grab active:cursor-grabbing" />
 
+      {/* Main Image */}
       <img 
         src={page.thumbnailDataUrl} 
         alt={`Page ${page.originalPageIndex + 1}`} 
-        className="w-full h-full object-cover pointer-events-none bg-white"
+        className="w-full h-full object-cover pointer-events-none bg-white absolute top-0 left-0"
         style={{ filter: filterString }}
       />
-      <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 backdrop-blur-sm rounded text-[10px] text-white font-medium">
+      
+      {/* Doodle Overlay (Preview) */}
+      {page.drawingDataUrl && (
+          <img 
+            src={page.drawingDataUrl} 
+            className="w-full h-full object-cover pointer-events-none absolute top-0 left-0 z-10" 
+          />
+      )}
+
+      <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 backdrop-blur-sm rounded text-[10px] text-white font-medium z-20">
         Pg {page.originalPageIndex + 1}
       </div>
     </div>
   );
+};
+
+
+// --- Doodle Modal Component ---
+
+interface DoodleModalProps {
+    page: PageItem;
+    onClose: () => void;
+    onSave: (drawingDataUrl: string) => void;
+}
+
+const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [tool, setTool] = useState<'pen' | 'pencil' | 'marker' | 'eraser'>('pen');
+    const [color, setColor] = useState('#000000');
+    
+    // Setup Canvas on Mount
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        // Match dimensions to the source image
+        canvas.width = page.width;
+        canvas.height = page.height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Load existing drawing if any
+        if (page.drawingDataUrl) {
+            const img = new Image();
+            img.src = page.drawingDataUrl;
+            img.onload = () => ctx.drawImage(img, 0, 0);
+        }
+        
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    }, [page]);
+
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        setIsDrawing(true);
+        
+        // Calculate coordinates relative to canvas
+        const rect = canvas.getBoundingClientRect();
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+        
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        
+        // Configure Tool
+        if (tool === 'pen') {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3 * scaleX; // Scale stroke with canvas
+            ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = 'source-over';
+        } else if (tool === 'pencil') {
+            ctx.strokeStyle = '#555555';
+            ctx.lineWidth = 1 * scaleX;
+            ctx.globalAlpha = 0.8;
+            ctx.globalCompositeOperation = 'source-over';
+        } else if (tool === 'marker') {
+            ctx.strokeStyle = '#FFFF00'; // Default Highlighter
+            ctx.lineWidth = 15 * scaleX;
+            ctx.globalAlpha = 0.3;
+            ctx.globalCompositeOperation = 'source-over';
+        } else if (tool === 'eraser') {
+            ctx.strokeStyle = '#000000'; // Color doesn't matter
+            ctx.lineWidth = 20 * scaleX;
+            ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = 'destination-out';
+        }
+    };
+
+    const draw = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDrawing) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        e.preventDefault(); // Stop scrolling on touch
+
+        const rect = canvas.getBoundingClientRect();
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+        
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    };
+
+    const stopDrawing = () => {
+        setIsDrawing(false);
+    };
+
+    const handleSave = () => {
+        if (canvasRef.current) {
+            onSave(canvasRef.current.toDataURL());
+        }
+        onClose();
+    };
+
+    // Filter string for background image to match Workshop settings
+    const brightnessVal = 1 + (page.filters.whiteness / 100);
+    const contrastVal = 1 + (page.filters.blackness / 100);
+    const filterString = `
+        grayscale(${page.filters.grayscale ? 1 : 0}) 
+        invert(${page.filters.invert ? 1 : 0}) 
+        brightness(${brightnessVal}) 
+        contrast(${contrastVal})
+    `;
+
+    return (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-[#1a1a1a] w-full max-w-4xl h-[90vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+                
+                {/* Header */}
+                <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex justify-between items-center">
+                    <h3 className="font-bold text-lg dark:text-white flex items-center gap-2"><PenTool size={18} /> Doodle Studio</h3>
+                    <div className="flex gap-2">
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-500"><X size={20} /></button>
+                        <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-indigo-700"><Save size={18} /> Save</button>
+                    </div>
+                </div>
+
+                {/* Toolbar */}
+                <div className="p-4 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 flex gap-4 justify-center items-center overflow-x-auto">
+                    
+                    <button onClick={() => setTool('pen')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'pen' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 ring-2 ring-indigo-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
+                        <div className="w-4 h-4 rounded-full bg-black dark:bg-white" />
+                        <span className="text-[10px] font-bold">Pen</span>
+                    </button>
+
+                    <button onClick={() => setTool('pencil')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'pencil' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 ring-2 ring-indigo-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
+                        <div className="w-4 h-4 rounded-full bg-gray-500 border border-gray-400" />
+                        <span className="text-[10px] font-bold">Pencil</span>
+                    </button>
+
+                    <button onClick={() => setTool('marker')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'marker' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 ring-2 ring-indigo-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
+                        <div className="w-4 h-4 rounded-full bg-yellow-400 opacity-50" />
+                        <span className="text-[10px] font-bold">Marker</span>
+                    </button>
+                    
+                    <div className="w-px h-8 bg-gray-300 dark:bg-zinc-700 mx-2" />
+
+                    <button onClick={() => setTool('eraser')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'eraser' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-2 ring-red-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
+                        <Eraser size={16} />
+                        <span className="text-[10px] font-bold">Eraser</span>
+                    </button>
+
+                    {tool === 'pen' && (
+                        <div className="ml-4 flex items-center gap-2">
+                             {['#000000', '#EF4444', '#3B82F6', '#10B981'].map(c => (
+                                 <button 
+                                    key={c} 
+                                    onClick={() => setColor(c)}
+                                    className={`w-8 h-8 rounded-full border-2 ${color === c ? 'border-indigo-600 scale-110' : 'border-transparent'}`}
+                                    style={{ backgroundColor: c }}
+                                 />
+                             ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Canvas Area */}
+                <div className="flex-1 bg-gray-200 dark:bg-black overflow-auto flex items-center justify-center p-8 relative">
+                    <div 
+                        className="relative shadow-2xl" 
+                        style={{ width: 'fit-content', height: 'fit-content' }}
+                    >
+                         {/* Background Image Reference */}
+                        <img 
+                            src={page.thumbnailDataUrl} 
+                            style={{ 
+                                maxWidth: '100%', 
+                                maxHeight: '60vh', 
+                                display: 'block',
+                                filter: filterString
+                            }} 
+                            className="pointer-events-none select-none"
+                        />
+                        
+                        {/* Drawing Canvas */}
+                        <canvas
+                            ref={canvasRef}
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={stopDrawing}
+                            onMouseLeave={stopDrawing}
+                            onTouchStart={startDrawing}
+                            onTouchMove={draw}
+                            onTouchEnd={stopDrawing}
+                            className="absolute top-0 left-0 w-full h-full cursor-crosshair touch-none"
+                        />
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
 };
 
 
@@ -99,9 +336,8 @@ interface Step2Props {
 
 export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
 
-  // Enhancement Suite State (Applied to currently selected items)
-  // We use a temporary state for the UI sliders, which applies to ALL selected items
   const selectedCount = pages.filter(p => p.isSelected).length;
 
   const sensors = useSensors(
@@ -129,6 +365,17 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
     setPages(prev => prev.map(p => p.id === id ? { ...p, isSelected: !p.isSelected } : p));
   };
 
+  const handleEditOpen = (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      setEditingPageId(id);
+  };
+
+  const handleDoodleSave = (dataUrl: string) => {
+      if (editingPageId) {
+          setPages(prev => prev.map(p => p.id === editingPageId ? { ...p, drawingDataUrl: dataUrl } : p));
+      }
+  };
+
   // Filter Actions
   const updateFilters = (key: keyof PageFilters, value: any) => {
     setPages(prev => prev.map(p => {
@@ -145,7 +392,8 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
         if (!p.isSelected) return p;
         return {
             ...p,
-            filters: { invert: false, grayscale: false, whiteness: 0, blackness: 0 }
+            filters: { invert: false, grayscale: false, whiteness: 0, blackness: 0 },
+            drawingDataUrl: null // Also clear drawings on reset? Maybe optional, but simpler here.
         };
     }));
   };
@@ -155,14 +403,24 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
       setPages(prev => prev.map(p => ({ ...p, isSelected: !allSelected })));
   };
 
-  // Get common filter state from first selected item (for UI consistency)
   const firstSelected = pages.find(p => p.isSelected);
   const currentWhiteness = firstSelected?.filters.whiteness || 0;
   const currentBlackness = firstSelected?.filters.blackness || 0;
 
+  const editingPage = pages.find(p => p.id === editingPageId);
+
   return (
     <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] mx-auto animate-fade-in pb-20">
       
+      {/* Modal */}
+      {editingPage && (
+          <DoodleModal 
+            page={editingPage} 
+            onClose={() => setEditingPageId(null)} 
+            onSave={handleDoodleSave}
+          />
+      )}
+
       {/* --- Sidebar: Enhancement Suite --- */}
       <div className="w-full lg:w-80 flex-shrink-0 order-2 lg:order-1">
         <div className="sticky top-8 bg-white dark:bg-[#1a1a1a] rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-zinc-800">
@@ -260,7 +518,7 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
       {/* --- Main Grid --- */}
       <div className="flex-1 order-1 lg:order-2">
         <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Arrange Pages</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Arrange & Doodle</h2>
             <button 
                 onClick={toggleSelectAll}
                 className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
@@ -278,7 +536,13 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
           <SortableContext items={pages.map(p => p.id)} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {pages.map((page) => (
-                <SortableItem key={page.id} id={page.id} page={page} onClick={() => toggleSelection(page.id)} />
+                <SortableItem 
+                    key={page.id} 
+                    id={page.id} 
+                    page={page} 
+                    onClick={() => toggleSelection(page.id)} 
+                    onEdit={(e) => handleEditOpen(e, page.id)}
+                />
               ))}
             </div>
           </SortableContext>
