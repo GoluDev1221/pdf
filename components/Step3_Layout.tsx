@@ -1,6 +1,6 @@
 import React from 'react';
 import { LayoutSettings, PageItem } from '../types';
-import { LayoutTemplate, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface Step3Props {
   layout: LayoutSettings;
