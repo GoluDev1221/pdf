@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { PageItem, PageFilters } from '../types';
-import { Sliders, Sun, Moon, Contrast, ArrowRight, RotateCcw, CheckSquare, PenTool, X, Save, Eraser } from 'lucide-react';
+import { Sliders, Sun, Moon, Contrast, ArrowRight, RotateCcw, CheckSquare, PenTool, X, Save, Eraser, Highlighter, Pencil } from 'lucide-react';
 
 // --- Sortable Item Component ---
 interface SortableItemProps {
@@ -119,8 +119,9 @@ interface DoodleModalProps {
 const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    const [tool, setTool] = useState<'pen' | 'pencil' | 'marker' | 'eraser'>('pen');
+    const [tool, setTool] = useState<'pencil' | 'marker' | 'eraser'>('pencil');
     const [color, setColor] = useState('#000000');
+    const [markerSize, setMarkerSize] = useState(15);
     
     // Setup Canvas on Mount
     useEffect(() => {
@@ -153,7 +154,6 @@ const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
 
         setIsDrawing(true);
         
-        // Calculate coordinates relative to canvas
         const rect = canvas.getBoundingClientRect();
         const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
         const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
@@ -168,23 +168,18 @@ const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
         ctx.moveTo(x, y);
         
         // Configure Tool
-        if (tool === 'pen') {
+        if (tool === 'pencil') {
             ctx.strokeStyle = color;
-            ctx.lineWidth = 3 * scaleX; // Scale stroke with canvas
-            ctx.globalAlpha = 1;
-            ctx.globalCompositeOperation = 'source-over';
-        } else if (tool === 'pencil') {
-            ctx.strokeStyle = '#555555';
-            ctx.lineWidth = 1 * scaleX;
+            ctx.lineWidth = 2 * scaleX;
             ctx.globalAlpha = 0.8;
             ctx.globalCompositeOperation = 'source-over';
         } else if (tool === 'marker') {
-            ctx.strokeStyle = '#FFFF00'; // Default Highlighter
-            ctx.lineWidth = 15 * scaleX;
-            ctx.globalAlpha = 0.3;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = markerSize * scaleX;
+            ctx.globalAlpha = 0.4; // Transparency for highlighter effect
             ctx.globalCompositeOperation = 'source-over';
         } else if (tool === 'eraser') {
-            ctx.strokeStyle = '#000000'; // Color doesn't matter
+            ctx.strokeStyle = '#000000';
             ctx.lineWidth = 20 * scaleX;
             ctx.globalAlpha = 1;
             ctx.globalCompositeOperation = 'destination-out';
@@ -198,7 +193,7 @@ const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         
-        e.preventDefault(); // Stop scrolling on touch
+        e.preventDefault();
 
         const rect = canvas.getBoundingClientRect();
         const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
@@ -235,6 +230,9 @@ const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
         contrast(${contrastVal})
     `;
 
+    // Palette
+    const colors = ['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899'];
+
     return (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white dark:bg-[#1a1a1a] w-full max-w-4xl h-[90vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden animate-fade-in">
@@ -249,42 +247,55 @@ const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
                 </div>
 
                 {/* Toolbar */}
-                <div className="p-4 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 flex gap-4 justify-center items-center overflow-x-auto">
+                <div className="p-4 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 flex flex-col md:flex-row gap-4 justify-between items-center overflow-x-auto">
                     
-                    <button onClick={() => setTool('pen')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'pen' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 ring-2 ring-indigo-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
-                        <div className="w-4 h-4 rounded-full bg-black dark:bg-white" />
-                        <span className="text-[10px] font-bold">Pen</span>
-                    </button>
+                    <div className="flex gap-4">
+                        <button onClick={() => setTool('pencil')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'pencil' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 ring-2 ring-indigo-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
+                            <Pencil size={18} />
+                            <span className="text-[10px] font-bold">Pencil</span>
+                        </button>
 
-                    <button onClick={() => setTool('pencil')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'pencil' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 ring-2 ring-indigo-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
-                        <div className="w-4 h-4 rounded-full bg-gray-500 border border-gray-400" />
-                        <span className="text-[10px] font-bold">Pencil</span>
-                    </button>
+                        <button onClick={() => setTool('marker')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'marker' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 ring-2 ring-indigo-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
+                            <Highlighter size={18} />
+                            <span className="text-[10px] font-bold">Marker</span>
+                        </button>
+                        
+                        <div className="w-px h-10 bg-gray-300 dark:bg-zinc-700 mx-1" />
 
-                    <button onClick={() => setTool('marker')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'marker' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 ring-2 ring-indigo-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
-                        <div className="w-4 h-4 rounded-full bg-yellow-400 opacity-50" />
-                        <span className="text-[10px] font-bold">Marker</span>
-                    </button>
-                    
-                    <div className="w-px h-8 bg-gray-300 dark:bg-zinc-700 mx-2" />
+                        <button onClick={() => setTool('eraser')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'eraser' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-2 ring-red-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
+                            <Eraser size={18} />
+                            <span className="text-[10px] font-bold">Eraser</span>
+                        </button>
+                    </div>
 
-                    <button onClick={() => setTool('eraser')} className={`p-3 rounded-xl flex flex-col items-center gap-1 min-w-[60px] ${tool === 'eraser' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-2 ring-red-500' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
-                        <Eraser size={16} />
-                        <span className="text-[10px] font-bold">Eraser</span>
-                    </button>
-
-                    {tool === 'pen' && (
-                        <div className="ml-4 flex items-center gap-2">
-                             {['#000000', '#EF4444', '#3B82F6', '#10B981'].map(c => (
-                                 <button 
-                                    key={c} 
-                                    onClick={() => setColor(c)}
-                                    className={`w-8 h-8 rounded-full border-2 ${color === c ? 'border-indigo-600 scale-110' : 'border-transparent'}`}
-                                    style={{ backgroundColor: c }}
+                    <div className="flex items-center gap-6">
+                         {tool === 'marker' && (
+                             <div className="flex items-center gap-2 bg-white dark:bg-black p-2 rounded-lg border border-gray-200 dark:border-zinc-700">
+                                 <div className="w-1 h-1 rounded-full bg-gray-400"></div>
+                                 <input 
+                                    type="range" 
+                                    min="5" max="50" 
+                                    value={markerSize}
+                                    onChange={(e) => setMarkerSize(Number(e.target.value))}
+                                    className="w-24 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                  />
-                             ))}
-                        </div>
-                    )}
+                                 <div className="w-4 h-4 rounded-full bg-gray-400"></div>
+                             </div>
+                         )}
+
+                         {(tool === 'pencil' || tool === 'marker') && (
+                            <div className="flex items-center gap-2">
+                                {colors.map(c => (
+                                    <button 
+                                        key={c} 
+                                        onClick={() => setColor(c)}
+                                        className={`w-6 h-6 rounded-full border-2 ${color === c ? 'border-gray-900 dark:border-white scale-125' : 'border-transparent hover:scale-110'} transition-transform`}
+                                        style={{ backgroundColor: c }}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Canvas Area */}
