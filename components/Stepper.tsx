@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Upload, Grid, LayoutTemplate, Download } from 'lucide-react';
 import { AppStep } from '../types';
 
 interface StepperProps {
   currentStep: AppStep;
+  onStepClick: (step: AppStep) => void;
 }
 
 const steps = [
@@ -13,7 +15,7 @@ const steps = [
   { id: AppStep.DOWNLOAD, label: 'Production', icon: Download },
 ];
 
-export const Stepper: React.FC<StepperProps> = ({ currentStep }) => {
+export const Stepper: React.FC<StepperProps> = ({ currentStep, onStepClick }) => {
   return (
     <div className="w-full max-w-4xl mx-auto mb-12 px-4">
       <div className="relative flex justify-between items-center">
@@ -23,11 +25,14 @@ export const Stepper: React.FC<StepperProps> = ({ currentStep }) => {
         {steps.map((step) => {
           const isActive = step.id === currentStep;
           const isCompleted = step.id < currentStep;
+          const isClickable = step.id < currentStep;
           
           return (
-            <div 
+            <button 
               key={step.id} 
-              className={`flex flex-col items-center gap-2 bg-white dark:bg-[#0f0f0f] px-2 transition-all duration-300 ${isActive ? 'scale-110' : 'opacity-60'}`}
+              onClick={() => isClickable && onStepClick(step.id)}
+              disabled={!isClickable && !isActive}
+              className={`flex flex-col items-center gap-2 bg-white dark:bg-[#0f0f0f] px-2 transition-all duration-300 ${isActive ? 'scale-110' : 'opacity-60'} ${isClickable ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
             >
               <div 
                 className={`
@@ -42,7 +47,7 @@ export const Stepper: React.FC<StepperProps> = ({ currentStep }) => {
               <span className={`text-xs font-medium tracking-wide uppercase ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'}`}>
                 {step.label}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
