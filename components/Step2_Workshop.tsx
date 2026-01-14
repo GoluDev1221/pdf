@@ -61,7 +61,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, page, onClick }) => {
       style={style} 
       {...attributes} 
       className={`relative group aspect-[1/1.4] rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border-2 ${page.isSelected ? 'border-indigo-500 shadow-md scale-[1.02]' : 'border-transparent opacity-50 grayscale'}`}
-      onClick={(e) => {
+      onClick={() => {
         // Prevent drag start on simple click
         onClick();
       }}
