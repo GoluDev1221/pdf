@@ -104,13 +104,13 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto animate-fade-in pb-20 px-4">
+    <div className="w-full max-w-[1600px] mx-auto animate-fade-in pb-20 px-2 sm:px-4">
       <h2 className="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-white">Blueprint Configuration</h2>
 
-      <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start justify-center">
         
         {/* Sidebar Controls */}
-        <div className="w-full lg:w-80 flex-shrink-0 bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-xl border border-gray-100 dark:border-zinc-800 overflow-hidden flex flex-col h-[600px] sticky top-24">
+        <div className="w-full lg:w-80 flex-shrink-0 bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-xl border border-gray-100 dark:border-zinc-800 overflow-hidden flex flex-col h-auto lg:h-[600px] lg:sticky lg:top-24">
             
             {/* Sidebar Tabs */}
             <div className="flex border-b border-gray-200 dark:border-zinc-800">
@@ -128,7 +128,7 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
                 </button>
             </div>
 
-            <div className="p-6 flex-1 overflow-y-auto">
+            <div className="p-6 flex-1 lg:overflow-y-auto">
                 {sidebarTab === 'config' ? (
                     <div className="space-y-8">
                         <div>
@@ -199,19 +199,19 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
         </div>
 
         {/* Visual Preview Area */}
-        <div className="flex-1 w-full flex flex-col items-center">
-          <p className="mb-4 text-sm font-medium text-gray-400 uppercase tracking-widest">Live Preview (Scrollable)</p>
+        <div className="flex-1 w-full flex flex-col items-center min-w-0">
+          <p className="mb-4 text-sm font-medium text-gray-400 uppercase tracking-widest text-center">Live Preview (Scrollable)</p>
           
-          <div className="space-y-8 max-h-[800px] overflow-y-auto pr-4 pb-20 custom-scrollbar">
+          <div className="space-y-8 w-full max-h-[800px] overflow-y-auto pr-2 sm:pr-4 pb-20 custom-scrollbar flex flex-col items-center">
             {pageChunks.map((chunk, pageIndex) => (
-                <div key={pageIndex} className="relative">
+                <div key={pageIndex} className="relative w-full max-w-[500px]">
                     {/* Page Number Label */}
-                    <div className="absolute -left-12 top-0 text-xs font-mono text-gray-400">
+                    <div className="absolute -left-0 -top-6 sm:-left-10 sm:top-0 text-xs font-mono text-gray-400">
                         #{pageIndex + 1}
                     </div>
 
-                    {/* A4 Paper Representation */}
-                    <div className="relative w-[500px] h-[707px] bg-white shadow-2xl rounded-sm p-8 flex flex-wrap content-start ring-1 ring-gray-200 dark:ring-zinc-800">
+                    {/* A4 Paper Representation - Responsive Width */}
+                    <div className="relative w-full aspect-[1/1.414] bg-white shadow-2xl rounded-sm p-4 sm:p-8 flex flex-wrap content-start ring-1 ring-gray-200 dark:ring-zinc-800">
                         {/* Grid Logic */}
                         {Array.from({ length: layout.nUp }).map((_, i) => {
                             // Determine grid sizing based on N-up
@@ -229,7 +229,7 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
                             return (
                                 <div 
                                     key={i} 
-                                    className={`${widthClass} ${heightClass} p-2 flex items-center justify-center transition-all duration-300`}
+                                    className={`${widthClass} ${heightClass} p-1 sm:p-2 flex items-center justify-center transition-all duration-300`}
                                 >
                                     <div className={`w-full h-full relative group/item ${layout.showBorders ? 'border border-gray-900' : ''} flex items-center justify-center overflow-hidden bg-gray-100`}>
                                         {mockPage ? (
