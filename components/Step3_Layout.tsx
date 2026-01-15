@@ -54,8 +54,18 @@ const SidebarSortableItem = ({ id, page }: { id: string, page: PageItem }) => {
         ${isDragging ? 'opacity-50 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-zinc-800'}
       `}
     >
-      <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-400">
-        <GripVertical size={16} />
+      {/* 
+          CRITICAL FIX FOR MOBILE: 
+          1. touch-none: Prevents browser scrolling when touching the handle.
+          2. p-4: Increases touch target size significantly.
+          3. -m-2: Pulls margin back so layout isn't affected by padding.
+      */}
+      <div 
+        {...listeners} 
+        {...attributes} 
+        className="p-4 -m-2 cursor-grab active:cursor-grabbing text-gray-400 touch-none hover:text-indigo-600 transition-colors"
+      >
+        <GripVertical size={20} />
       </div>
       <img src={page.thumbnailDataUrl} className="w-8 h-10 object-cover rounded bg-white border border-gray-200" />
       <div className="flex-1 min-w-0">
@@ -110,10 +120,11 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start justify-center">
         
         {/* Sidebar Controls */}
-        <div className="w-full lg:w-80 flex-shrink-0 bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-xl border border-gray-100 dark:border-zinc-800 overflow-hidden flex flex-col h-auto lg:h-[600px] lg:sticky lg:top-24">
+        {/* Changed h-auto to h-[65vh] for mobile to ensure internal scrolling for DnD lists */}
+        <div className="w-full lg:w-80 flex-shrink-0 bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-xl border border-gray-100 dark:border-zinc-800 overflow-hidden flex flex-col h-[65vh] lg:h-[600px] lg:sticky lg:top-24">
             
             {/* Sidebar Tabs */}
-            <div className="flex border-b border-gray-200 dark:border-zinc-800">
+            <div className="flex border-b border-gray-200 dark:border-zinc-800 flex-shrink-0">
                 <button 
                     onClick={() => setSidebarTab('config')}
                     className={`flex-1 py-4 flex items-center justify-center gap-2 font-medium text-sm transition-colors ${sidebarTab === 'config' ? 'bg-indigo-50 dark:bg-zinc-800 text-indigo-600' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-900'}`}
@@ -128,7 +139,8 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
                 </button>
             </div>
 
-            <div className="p-6 flex-1 lg:overflow-y-auto">
+            {/* Scrollable Content Area */}
+            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                 {sidebarTab === 'config' ? (
                     <div className="space-y-8">
                         <div>
@@ -171,7 +183,7 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 pb-4">
                         <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-4">Drag to Reorder</p>
                         <DndContext 
                             sensors={sensors} 
@@ -188,7 +200,7 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
                 )}
             </div>
 
-            <div className="p-6 border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-[#1a1a1a] z-10">
+            <div className="p-6 border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-[#1a1a1a] z-10 flex-shrink-0">
                 <button 
                     onClick={onNext}
                     className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
