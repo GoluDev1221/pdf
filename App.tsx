@@ -1,10 +1,7 @@
 
 import React, { useState } from 'react';
-import { Stepper } from './components/Stepper';
 import { Step1_Upload } from './components/Step1_Upload';
-import { Step2_Workshop } from './components/Step2_Workshop';
-import { Step3_Layout } from './components/Step3_Layout';
-import { Step4_Download } from './components/Step4_Download';
+import { Dashboard } from './components/Dashboard';
 import { LegalFooter } from './components/LegalFooter';
 import { AppStep, UploadedFile, PageItem, LayoutSettings } from './types';
 import { loadPdfFile, renderPageToThumbnail } from './services/pdfService';
@@ -14,7 +11,8 @@ const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.UPLOAD);
   const [files, setFiles] = useState<Record<string, UploadedFile>>({});
   const [pages, setPages] = useState<PageItem[]>([]);
-  const [layout, setLayout] = useState<LayoutSettings>({ nUp: 1, showBorders: false });
+  // DEFAULT: 4-Up Grid + Borders enabled
+  const [layout, setLayout] = useState<LayoutSettings>({ nUp: 4, showBorders: true });
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
 
   // --- Handlers ---
@@ -46,7 +44,7 @@ const App: React.FC = () => {
     setFiles(newFiles);
   };
 
-  const generateThumbnailsAndTransition = async () => {
+  const generateThumbnailsAndGo = async () => {
     if (Object.keys(files).length === 0) return;
     setIsProcessingUpload(true);
     
@@ -67,23 +65,29 @@ const App: React.FC = () => {
             width,
             height,
             isSelected: true, // Select all by default
+            
+            // --- AUTOMATION MAGIC HAPPENS HERE ---
+            // We assume the user wants Ink Saver Mode by default.
             filters: {
-              invert: false,
-              grayscale: false,
-              whiteness: 0,
-              blackness: 0
+              invert: true,
+              grayscale: true,
+              whiteness: 12,  // Slight brightness boost
+              blackness: 50   // High contrast
             },
             drawingDataUrl: null,
-            rotation: 0
+            // We assume landscape slides need 90deg rotation to fit on A4 portrait grid
+            rotation: 90 
           });
         }
       }
       
       setPages(newPages);
-      setCurrentStep(AppStep.WORKSHOP);
+      // Move directly to Dashboard
+      setCurrentStep(AppStep.DASHBOARD);
+      
     } catch (e) {
       console.error(e);
-      alert("Error preparing workshop");
+      alert("Error preparing files");
     } finally {
       setIsProcessingUpload(false);
     }
@@ -92,7 +96,7 @@ const App: React.FC = () => {
   const resetApp = () => {
     setFiles({});
     setPages([]);
-    setLayout({ nUp: 1, showBorders: false });
+    setLayout({ nUp: 4, showBorders: true });
     setCurrentStep(AppStep.UPLOAD);
   };
 
@@ -105,72 +109,55 @@ const App: React.FC = () => {
       <header className="fixed top-0 w-full z-50 bg-[#fafafa]/80 dark:bg-[#0f0f0f]/80 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Logo Implementation */}
             <img 
                 src="/logo.png" 
                 alt="PDFbhai Logo" 
                 className="w-8 h-8 rounded-lg object-contain bg-indigo-600"
                 onError={(e) => {
-                    // Fallback if logo.png is missing
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
                 }}
             />
-            {/* Fallback Logo */}
-            <div className="hidden w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-              P
-            </div>
+            <div className="hidden w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">P</div>
             <span className="font-bold text-xl tracking-tight">PDFbhai</span>
           </div>
-          <div className="text-xs font-mono text-gray-400 hidden sm:block">Privacy-First. Local. Fast.</div>
+          <div className="flex items-center gap-4">
+             {currentStep === AppStep.DASHBOARD && (
+                 <button onClick={resetApp} className="text-sm font-medium text-gray-500 hover:text-red-500 transition-colors">
+                     Start Over
+                 </button>
+             )}
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="pt-24 px-4 sm:px-6 pb-20 flex-1 w-full max-w-[1920px] mx-auto">
-        <Stepper currentStep={currentStep} onStepClick={setCurrentStep} />
+      <main className="pt-24 px-4 sm:px-6 pb-20 flex-1 w-full max-w-[1920px] mx-auto flex flex-col items-center">
         
-        <div className="min-h-[60vh]">
-          {currentStep === AppStep.UPLOAD && (
-            <Step1_Upload 
-              files={Object.values(files)} 
-              onFilesAdded={handleFilesAdded} 
-              onFileRemoved={handleFileRemoved}
-              onNext={generateThumbnailsAndTransition}
-              isProcessing={isProcessingUpload}
-            />
-          )}
+        {currentStep === AppStep.UPLOAD && (
+          <div className="w-full max-w-4xl mt-10">
+              <Step1_Upload 
+                files={Object.values(files)} 
+                onFilesAdded={handleFilesAdded} 
+                onFileRemoved={handleFileRemoved}
+                onNext={generateThumbnailsAndGo}
+                isProcessing={isProcessingUpload}
+              />
+          </div>
+        )}
 
-          {currentStep === AppStep.WORKSHOP && (
-            <Step2_Workshop 
-              pages={pages} 
-              setPages={setPages} 
-              onNext={() => setCurrentStep(AppStep.LAYOUT)} 
-            />
-          )}
-
-          {currentStep === AppStep.LAYOUT && (
-            <Step3_Layout 
-              layout={layout} 
-              setLayout={setLayout} 
-              onNext={() => setCurrentStep(AppStep.DOWNLOAD)} 
-              pages={pages}
-              setPages={setPages}
-            />
-          )}
-
-          {currentStep === AppStep.DOWNLOAD && (
-            <Step4_Download 
-              pages={pages} 
-              files={files} 
-              layout={layout} 
-              onReset={resetApp} 
-            />
-          )}
-        </div>
+        {currentStep === AppStep.DASHBOARD && (
+          <Dashboard 
+            pages={pages}
+            setPages={setPages}
+            files={files} 
+            layout={layout}
+            setLayout={setLayout}
+            onReset={resetApp}
+          />
+        )}
       </main>
 
-      {/* Legal Footer */}
       <LegalFooter />
     </div>
   );
