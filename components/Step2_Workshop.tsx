@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   DndContext, 
@@ -19,7 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { PageItem, PageFilters } from '../types';
-import { Sliders, Sun, Moon, Contrast, ArrowRight, RotateCcw, CheckSquare, PenTool, X, Save, Eraser, Highlighter, Pencil, Plus } from 'lucide-react';
+import { Sliders, Sun, Moon, Contrast, ArrowRight, RotateCcw, CheckSquare, PenTool, X, Save, Eraser, Highlighter, Pencil, Plus, Zap, Undo2 } from 'lucide-react';
 
 // --- Sortable Item Component ---
 interface SortableItemProps {
@@ -108,7 +109,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, page, onClick, onEdit }
 
 
 // --- Doodle Modal Component ---
-
+// (Doodle Modal code remains identical, omitted for brevity, but logically present)
 interface DoodleModalProps {
     page: PageItem;
     onClose: () => void;
@@ -423,7 +424,8 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
         return {
             ...p,
             filters: { invert: false, grayscale: false, whiteness: 0, blackness: 0 },
-            drawingDataUrl: null // Also clear drawings on reset? Maybe optional, but simpler here.
+            rotation: 0, // Also reset rotation
+            drawingDataUrl: null
         };
     }));
   };
@@ -454,7 +456,8 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
       {/* --- Sidebar: Enhancement Suite --- */}
       <div className="w-full lg:w-80 flex-shrink-0 order-2 lg:order-1">
         <div className="sticky top-8 bg-white dark:bg-[#1a1a1a] rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-zinc-800">
-          <div className="flex items-center justify-between mb-6">
+          
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold flex items-center gap-2">
               <Sliders size={20} className="text-indigo-600" />
               Workshop
@@ -462,6 +465,19 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
             <span className="text-xs font-mono px-2 py-1 bg-gray-100 dark:bg-zinc-800 rounded text-gray-500">
               {selectedCount} Selected
             </span>
+          </div>
+
+          {/* AUTO-APPLIED BANNER */}
+          <div className="mb-6 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-xl flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-xs uppercase tracking-wide">
+                <Zap size={14} /> Ink Saver Applied
+            </div>
+            <button 
+                onClick={resetFilters}
+                className="text-xs flex items-center gap-1 text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white underline"
+            >
+                <Undo2 size={12} /> Revert to Original
+            </button>
           </div>
 
           {selectedCount === 0 ? (
@@ -527,7 +543,7 @@ export const Step2_Workshop: React.FC<Step2Props> = ({ pages, setPages, onNext }
                     onClick={resetFilters}
                     className="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 flex items-center justify-center gap-2 transition-colors"
                 >
-                    <RotateCcw size={14} /> Reset
+                    <RotateCcw size={14} /> Reset All
                 </button>
               </div>
             </div>
