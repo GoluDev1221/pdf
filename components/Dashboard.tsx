@@ -4,7 +4,7 @@ import { PageItem, LayoutSettings, UploadedFile } from '../types';
 import { generateFinalPdf } from '../services/pdfService';
 import { 
   Download, Settings, Sliders, Loader2, CheckCircle, RefreshCcw, 
-  Moon, Sun, RotateCw, PenTool, X, Save, Pencil, Highlighter, Eraser, Plus, ChevronDown
+  Moon, Sun, RotateCw, PenTool, X, Save, Pencil, Highlighter, Eraser, ChevronDown
 } from 'lucide-react';
 
 // --- Doodle Modal Component (Integrated) ---
@@ -149,6 +149,21 @@ const DoodleModal: React.FC<DoodleModalProps> = ({ page, onClose, onSave }) => {
                         ))}
                     </div>
                     
+                    {tool === 'marker' && (
+                         <div className="flex items-center gap-2 pl-4 border-l border-gray-200 dark:border-zinc-700">
+                             <div className="flex items-center gap-2 bg-gray-100 dark:bg-zinc-800 px-3 py-1.5 rounded-lg">
+                                 <span className="text-[10px] font-bold text-gray-500 uppercase">Size</span>
+                                 <input 
+                                    type="range" 
+                                    min="5" max="50" 
+                                    value={markerSize}
+                                    onChange={(e) => setMarkerSize(Number(e.target.value))}
+                                    className="w-20 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                 />
+                             </div>
+                         </div>
+                    )}
+
                     {(tool === 'pencil' || tool === 'marker') && (
                         <div className="flex items-center gap-2 pl-4 border-l border-gray-200 dark:border-zinc-700">
                              {presetColors.map(c => (
