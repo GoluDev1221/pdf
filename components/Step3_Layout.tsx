@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { LayoutSettings, PageItem } from '../types';
-import { ArrowRight, RotateCw, GripVertical, Settings, List } from 'lucide-react';
+import { ArrowRight, RotateCw, GripVertical, Settings, List, GraduationCap, Coins, StickyNote } from 'lucide-react';
 import { 
   DndContext, 
   closestCenter, 
@@ -54,12 +54,6 @@ const SidebarSortableItem = ({ id, page }: { id: string, page: PageItem }) => {
         ${isDragging ? 'opacity-50 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-zinc-800'}
       `}
     >
-      {/* 
-          CRITICAL FIX FOR MOBILE: 
-          1. touch-none: Prevents browser scrolling when touching the handle.
-          2. p-4: Increases touch target size significantly.
-          3. -m-2: Pulls margin back so layout isn't affected by padding.
-      */}
       <div 
         {...listeners} 
         {...attributes} 
@@ -88,6 +82,12 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
         }
         return p;
     }));
+  };
+
+  const applyStudentPreset = (type: 'notes' | 'economy' | 'cheat') => {
+      if (type === 'notes') setLayout({ nUp: 1, showBorders: false });
+      if (type === 'economy') setLayout({ nUp: 2, showBorders: true });
+      if (type === 'cheat') setLayout({ nUp: 4, showBorders: true });
   };
 
   const sensors = useSensors(
@@ -120,8 +120,7 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start justify-center">
         
         {/* Sidebar Controls */}
-        {/* Changed h-auto to h-[65vh] for mobile to ensure internal scrolling for DnD lists */}
-        <div className="w-full lg:w-80 flex-shrink-0 bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-xl border border-gray-100 dark:border-zinc-800 overflow-hidden flex flex-col h-[65vh] lg:h-[600px] lg:sticky lg:top-24">
+        <div className="w-full lg:w-80 flex-shrink-0 bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-xl border border-gray-100 dark:border-zinc-800 overflow-hidden flex flex-col h-[65vh] lg:h-[650px] lg:sticky lg:top-24">
             
             {/* Sidebar Tabs */}
             <div className="flex border-b border-gray-200 dark:border-zinc-800 flex-shrink-0">
@@ -143,9 +142,42 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
             <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                 {sidebarTab === 'config' ? (
                     <div className="space-y-8">
+                        
+                        {/* Student Smart Presets */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wider">
-                            Slides Per Page (N-Up)
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider flex items-center gap-2">
+                                <GraduationCap size={14} /> Student Presets
+                            </label>
+                            <div className="grid grid-cols-1 gap-2">
+                                <button onClick={() => applyStudentPreset('notes')} className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all ${layout.nUp === 1 ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-600' : 'border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800'}`}>
+                                    <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><StickyNote size={16} /></div>
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-900 dark:text-white">Standard Notes</div>
+                                        <div className="text-[10px] text-gray-500">1 Slide per page</div>
+                                    </div>
+                                </button>
+                                <button onClick={() => applyStudentPreset('economy')} className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all ${layout.nUp === 2 ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-600' : 'border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800'}`}>
+                                    <div className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center"><Coins size={16} /></div>
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-900 dark:text-white">Economy Saver</div>
+                                        <div className="text-[10px] text-gray-500">2 Slides • Saves 50% Paper</div>
+                                    </div>
+                                </button>
+                                <button onClick={() => applyStudentPreset('cheat')} className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all ${layout.nUp === 4 ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-600' : 'border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800'}`}>
+                                    <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><List size={16} /></div>
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-900 dark:text-white">Cheat Sheet</div>
+                                        <div className="text-[10px] text-gray-500">4 Slides • Maximum Dense</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="h-px bg-gray-200 dark:bg-zinc-800" />
+
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider">
+                                Manual Grid (N-Up)
                             </label>
                             <div className="grid grid-cols-4 gap-2">
                             {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
@@ -153,10 +185,10 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
                                 key={n}
                                 onClick={() => setLayout({ ...layout, nUp: n as any })}
                                 className={`
-                                    py-3 rounded-lg font-bold text-sm transition-all border-2
+                                    py-2 rounded-lg font-bold text-sm transition-all border-2
                                     ${layout.nUp === n 
-                                    ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600' 
-                                    : 'border-gray-200 dark:border-zinc-700 hover:border-indigo-300 dark:hover:border-zinc-600'}
+                                    ? 'border-indigo-600 bg-indigo-600 text-white' 
+                                    : 'border-gray-200 dark:border-zinc-700 hover:border-indigo-300 dark:hover:border-zinc-600 text-gray-600 dark:text-gray-400'}
                                 `}
                                 >
                                 {n}
@@ -173,7 +205,7 @@ export const Step3_Layout: React.FC<Step3Props> = ({ layout, setLayout, onNext, 
                                 onChange={(e) => setLayout({ ...layout, showBorders: e.target.checked })}
                                 className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
                             />
-                            <span className="font-medium text-gray-700 dark:text-gray-200">Draw Borders</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-200">Draw Cut Borders</span>
                             </label>
                         </div>
                         
