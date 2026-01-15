@@ -1,23 +1,24 @@
 
-const CACHE_NAME = 'pdfbhai-v1';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'pdfbhai-v2';
+// We precache the core app shell. 
+const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/logo.png',
-  '/manifest.json'
+  '/manifest.json',
+  '/logo.png'
 ];
 
-// Install Event: Cache core assets
+// 1. Install: Cache core assets immediately
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // CRITICAL: Forces SW to activate immediately, fixing PWABuilder detection
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(PRECACHE_ASSETS);
     })
   );
-  self.skipWaiting();
 });
 
-// Activate Event: Clean up old caches
+// 2. Activate: Clean up old caches and take control of the page
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -30,47 +31,34 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  self.clients.claim();
+  self.clients.claim(); // CRITICAL: Makes the SW control the page without a reload
 });
 
-// Fetch Event: Network first, fall back to cache (Stale-while-revalidate strategy)
+// 3. Fetch: Stale-While-Revalidate Strategy
+// This serves from cache immediately (fast) while updating from network in the background.
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests (like Google Fonts or CDNs) for strict caching, 
-  // or handle them. For now, we try to cache everything to ensure offline usage.
-  
+  // Skip non-http requests (like extensions)
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Return cached response if found
-      if (cachedResponse) {
-        // Update cache in background
-        fetch(event.request).then((networkResponse) => {
-            if(networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, networkResponse);
-                });
-            }
-        }).catch(() => {}); // Eat errors on background update
-        
-        return cachedResponse;
-      }
-
-      // Otherwise fetch from network
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+      // Create a network fetch promise that updates the cache
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        // Check if we received a valid response
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
         }
-
-        // Cache the new resource
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-
         return networkResponse;
       }).catch(() => {
-        // If offline and not in cache, we could return a fallback page here
-        // For this app, simply failing is acceptable as core assets are pre-cached
+        // Network failed (offline)
+        // If we don't have a cached response either, we just return nothing (or a fallback)
       });
+
+      // Return cached response immediately if available, otherwise wait for network
+      return cachedResponse || fetchPromise;
     })
   );
 });
